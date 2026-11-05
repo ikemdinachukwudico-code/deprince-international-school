@@ -3,44 +3,243 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>De Prince International School - Home</title>
+  <title>Teacher Portal - De Prince International School</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-  <nav class="navbar">
-    <a href="index.html" class="nav-brand">De Prince <span>International</span></a>
-    <button class="mobile-menu-btn" id="menuToggle" aria-label="Toggle Navigation">
-      <span></span><span></span><span></span>
-    </button>
-    <ul class="nav-links" id="navLinks">
-      <li><a href="index.html">Home</a></li>
-      <li><a href="about.html">About Us</a></li>
-      <li><a href="academics.html">Academics</a></li>
-      <li><a href="admissions.html">Admissions</a></li>
-      <li><a href="admission-portal.html" class="btn-result">Apply Now</a></li>
-      <li><a href="student-portal.html">Student Portal</a></li>
-    </ul>
-  </nav>
+  <div class="login-page">
+    <div class="login-card">
+      <h1>🔒 Teacher Portal</h1>
+      <p class="subtitle">De Prince International School</p>
+      <div id="auth-alert"></div>
 
-  <section class="hero" id="home">
-    <div class="hero-content">
-      <span class="badge">NURTURING FUTURE LEADERS</span>
-      <h1>Welcome to <br><span>De Prince International School</span></h1>
-      <p>
-        Providing world-class education, character development, and academic excellence in a supportive environment tailored for success.
-      </p>
-      <div class="cta-group">
-        <a href="admissions.html" class="btn-primary">Enroll Now</a>
-        <a href="student-portal.html" class="btn-secondary">Student Portal</a>
-      </div>
+      <!-- Login Form -->
+      <form id="login-form" onsubmit="return teacherLogin(event)">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="login-email" required placeholder="teacher@school.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%;">Login</button>
+        <p class="text-center mt-20">
+          New teacher? <a href="#" onclick="toggleAuth('signup')" style="color: var(--accent-blue); font-weight: 600;">Register here</a>
+        </p>
+      </form>
+
+      <!-- Signup Form -->
+      <form id="signup-form" class="hidden" onsubmit="return teacherSignup(event)">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="signup-name" required placeholder="Mr. John Doe">
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="signup-email" required placeholder="teacher@school.com">
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="signup-role" required onchange="handleRoleChange()">
+            <option value="">Select Role</option>
+            <option value="form-teacher">Form Teacher</option>
+            <option value="administration">Administration / Accountant</option>
+          </select>
+        </div>
+        <div class="form-group hidden" id="class-select-group">
+          <label>Class (Form Teachers Only)</label>
+          <select id="signup-class">
+            <option value="">Select Class</option>
+            <option value="Nursery 1">Nursery 1</option>
+            <option value="Nursery 2">Nursery 2</option>
+            <option value="Primary 1">Primary 1</option>
+            <option value="Primary 2">Primary 2</option>
+            <option value="Primary 3">Primary 3</option>
+            <option value="Primary 4">Primary 4</option>
+            <option value="Primary 5">Primary 5</option>
+            <option value="Primary 6">Primary 6</option>
+            <option value="JSS 1">JSS 1</option>
+            <option value="JSS 2">JSS 2</option>
+            <option value="JSS 3">JSS 3</option>
+            <option value="SS 1">SS 1</option>
+            <option value="SS 2">SS 2</option>
+            <option value="SS 3">SS 3</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="signup-password" required minlength="6" placeholder="Create password">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%;">Register</button>
+        <p class="text-center mt-20">
+          Have an account? <a href="#" onclick="toggleAuth('login')" style="color: var(--accent-blue); font-weight: 600;">Login here</a>
+        </p>
+      </form>
     </div>
-  </section>
+  </div>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/main.js"></script>
+  <script>
+    function toggleAuth(mode) {
+      document.getElementById('login-form').classList.toggle('hidden', mode !== 'login');
+      document.getElementById('signup-form').classList.toggle('hidden', mode !== 'signup');
+      document.getElementById('auth-alert').innerHTML = '';
+    }
+
+    async function updateAdminOption() {
+      const adminOption = document.querySelector('#signup-role option[value="administration"]');
+      if (!adminOption) return;
+      try {
+        const snap = await teachersRef.where('role', '==', 'administration').limit(1).get();
+        adminOption.disabled = !snap.empty;
+        adminOption.textContent = snap.empty ? 'Administration / Accountant (1 account only)' : 'Administration / Accountant (Already registered)';
+      } catch (err) {
+        // Keep the option enabled if the availability check cannot run; the signup check below still enforces the limit.
+      }
+    }
+
+    function handleRoleChange() {
+      var role = document.getElementById('signup-role').value;
+      if (role === 'form-teacher') {
+        document.getElementById('class-select-group').classList.remove('hidden');
+      } else {
+        document.getElementById('class-select-group').classList.add('hidden');
+        document.getElementById('signup-class').value = '';
+      }
+    }
+
+    async function teacherSignup(e) {
+      e.preventDefault();
+      var name = document.getElementById('signup-name').value.trim();
+      var email = document.getElementById('signup-email').value.trim();
+      var role = document.getElementById('signup-role').value;
+      var cls = document.getElementById('signup-class').value;
+      var password = document.getElementById('signup-password').value;
+
+      if (role === 'form-teacher' && !cls) {
+        showAlert('auth-alert', 'Please select a class for form teacher role.', 'error');
+        return false;
+      }
+
+      try {
+        // Prevent duplicate teacher accounts.
+        const snap = await teachersRef.where('email', '==', email).get();
+        if (!snap.empty) {
+          showAlert('auth-alert', 'Email already registered!', 'error');
+          return false;
+        }
+
+        // There can be exactly ONE administration/accountant account.
+        // Existing administration records are checked first for compatibility.
+        if (role === 'administration') {
+          const adminSnap = await teachersRef.where('role', '==', 'administration').limit(1).get();
+          if (!adminSnap.empty) {
+            showAlert('auth-alert', 'An Administration / Accountant account is already registered. Only one administrator is allowed.', 'error');
+            updateAdminOption();
+            return false;
+          }
+
+          // Use one deterministic Firestore document for the administrator.
+          // A transaction makes two simultaneous signup attempts race safely: only
+          // the first transaction can create the canonical administrator record.
+          const adminRef = teachersRef.doc('__admin__');
+          const adminData = {
+            name: name,
+            email: email,
+            role: 'administration',
+            class: null,
+            password: password,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+
+          try {
+            await db.runTransaction(async function(transaction) {
+              const adminDoc = await transaction.get(adminRef);
+              if (adminDoc.exists) {
+                throw new Error('ADMIN_ALREADY_EXISTS');
+              }
+              transaction.set(adminRef, adminData);
+            });
+          } catch (adminError) {
+            if (adminError && adminError.message === 'ADMIN_ALREADY_EXISTS') {
+              showAlert('auth-alert', 'An Administration / Accountant account is already registered. Only one administrator is allowed.', 'error');
+            } else {
+              showAlert('auth-alert', 'Unable to create the administrator account. Please try again.', 'error');
+            }
+            updateAdminOption();
+            return false;
+          }
+
+          showAlert('auth-alert', 'Registration successful! Please login.', 'success');
+          toggleAuth('login');
+          return false;
+        }
+
+        // A class may have only one active form teacher.
+        if (role === 'form-teacher' && cls) {
+          const classSnap = await classRegistryRef.doc(cls).get();
+          if (classSnap.exists) {
+            showAlert('auth-alert', 'That class already has a form teacher assigned. Choose another class.', 'error');
+            return false;
+          }
+        }
+
+        await teachersRef.add({
+          name: name,
+          email: email,
+          role: role,
+          class: role === 'form-teacher' ? cls : null,
+          password: password,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // If form teacher, register class
+        if (role === 'form-teacher' && cls) {
+          await classRegistryRef.doc(cls).set({
+            className: cls,
+            teacherEmail: email,
+            teacherName: name,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+
+        showAlert('auth-alert', 'Registration successful! Please login.', 'success');
+        toggleAuth('login');
+      } catch (err) {
+        showAlert('auth-alert', 'Error: ' + err.message, 'error');
+      }
+      return false;
+    }
+
+    document.addEventListener('DOMContentLoaded', updateAdminOption);
+
+    async function teacherLogin(e) {
+      e.preventDefault();
+      var email = document.getElementById('login-email').value.trim();
+      var password = document.getElementById('login-password').value;
+
+      try {
+        const snap = await teachersRef.where('email', '==', email).where('password', '==', password).get();
+        if (snap.empty) {
+          showAlert('auth-alert', 'Invalid email or password!', 'error');
+          return false;
+        }
+
+        const doc = snap.docs[0];
+        const teacher = { id: doc.id, ...doc.data() };
+        localStorage.setItem('dpis_teacher_session', JSON.stringify(teacher));
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        showAlert('auth-alert', 'Login error: ' + err.message, 'error');
+      }
+      return false;
+    }
+  </script>
 </body>
 </html>
