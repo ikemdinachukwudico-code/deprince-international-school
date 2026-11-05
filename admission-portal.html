@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admission Portal - De Prince International School</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">De Prince <span>International</span></a>
+    <button class="mobile-menu-btn" id="menuToggle" aria-label="Toggle Navigation">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About Us</a></li>
+      <li><a href="academics.html">Academics</a></li>
+      <li><a href="admissions.html">Admissions</a></li>
+      <li><a href="admission-portal.html" class="btn-result">Apply Now</a></li>
+      <li><a href="student-portal.html">Student Portal</a></li>
+    </ul>
+  </nav>
+
+  <section class="page-section admission-theme" id="admission-portal">
+    <div class="section-header" style="color: white;">
+      <h2 style="color: white;">Admission Portal</h2>
+      <p style="color: rgba(255,255,255,0.8);">Apply for admission or check your application status</p>
+    </div>
+
+    <div class="form-container" style="margin-bottom: 40px;">
+      <h2>Check Admission Status</h2>
+      <p class="subtitle">Enter your email to check if you've been admitted</p>
+      <div id="admission-check-alert"></div>
+      <div class="form-group">
+        <label>Application Email</label>
+        <input type="email" id="admission-check-email" placeholder="Enter the email you applied with">
+      </div>
+      <button class="btn-primary" style="width: 100%;" onclick="checkAdmissionStatus()">Check Status</button>
+      <div id="admission-status-result" style="margin-top: 20px;"></div>
+    </div>
+
+    <div class="form-container">
+      <h2>New Application</h2>
+      <p class="subtitle">Fill the form below to apply for admission</p>
+      <div id="admission-apply-alert"></div>
+      <form onsubmit="return applyForAdmission(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Student Full Name</label>
+            <input type="text" id="app-name" required placeholder="John Doe">
+          </div>
+          <div class="form-group">
+            <label>Parent/Guardian Email</label>
+            <input type="email" id="app-email" required placeholder="parent@email.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Desired Class</label>
+            <select id="app-class" required>
+              <option value="">Select Class</option>
+              <option value="Creche">Creche</option>
+              <option value="Pre-Nursery">Pre-Nursery</option>
+              <option value="Nursery 1">Nursery 1</option>
+              <option value="Nursery 2">Nursery 2</option>
+              <option value="Primary 1">Primary 1</option>
+              <option value="Primary 2">Primary 2</option>
+              <option value="Primary 3">Primary 3</option>
+              <option value="Primary 4">Primary 4</option>
+              <option value="Primary 5">Primary 5</option>
+              <option value="Primary 6">Primary 6</option>
+              <option value="JSS 1">JSS 1</option>
+              <option value="JSS 2">JSS 2</option>
+              <option value="JSS 3">JSS 3</option>
+              <option value="SS 1">SS 1</option>
+              <option value="SS 2">SS 2</option>
+              <option value="SS 3">SS 3</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Parent Phone <span style="color: var(--danger);">* Required for Interview</span></label>
+            <input type="tel" id="app-phone" required placeholder="+234...">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Additional Information</label>
+          <textarea id="app-info" rows="3" placeholder="Any additional details..."></textarea>
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%;">Submit Application</button>
+      </form>
+    </div>
+  </section>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    async function checkAdmissionStatus() {
+      var email = document.getElementById('admission-check-email').value.trim();
+      var resultDiv = document.getElementById('admission-status-result');
+
+      if (!email) {
+        showAlert('admission-check-alert', 'Please enter an email address.', 'error');
+        return;
+      }
+
+      try {
+        const snapshot = await admissionsRef.where('email', '==', email).get();
+        if (snapshot.empty) {
+          resultDiv.innerHTML = '<div class="alert alert-error">No application found with this email.</div>';
+          return;
+        }
+
+        const app = snapshot.docs[0].data();
+        const statusColor = app.status === 'admitted' ? 'var(--success)' : app.status === 'rejected' ? 'var(--danger)' : 'var(--warning)';
+        const statusText = app.status === 'admitted' ? 'ADMITTED' : app.status === 'rejected' ? 'NOT ADMITTED' : 'PENDING REVIEW';
+
+        resultDiv.innerHTML = '<div class="card" style="margin-top: 20px;"><h4 style="color: var(--primary-blue); margin-bottom: 15px;">Application Found</h4><p><strong>Name:</strong> ' + app.name + '</p><p><strong>Class Applied:</strong> ' + app.class + '</p><p><strong>Status:</strong> <span style="color: ' + statusColor + '; font-weight: 700; font-size: 1.1rem;">' + statusText + '</span></p><p style="font-size: 0.85rem; color: #556068; margin-top: 10px;">Submitted on: ' + (app.date ? new Date(app.date.toDate()).toLocaleDateString() : 'N/A') + '</p></div>';
+      } catch (err) {
+        showAlert('admission-check-alert', 'Error checking status: ' + err.message, 'error');
+      }
+    }
+
+    async function applyForAdmission(e) {
+      e.preventDefault();
+      var name = document.getElementById('app-name').value;
+      var email = document.getElementById('app-email').value;
+      var cls = document.getElementById('app-class').value;
+      var phone = document.getElementById('app-phone').value;
+      var info = document.getElementById('app-info').value;
+
+      if (!phone || phone.trim() === '') {
+        showAlert('admission-apply-alert', 'Phone number is required for interview scheduling.', 'error');
+        return false;
+      }
+
+      try {
+        await admissionsRef.add({
+          name: name,
+          email: email,
+          class: cls,
+          phone: phone,
+          info: info,
+          status: 'pending',
+          date: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showAlert('admission-apply-alert', 'Application submitted successfully! Check your status later.', 'success');
+        e.target.reset();
+      } catch (err) {
+        showAlert('admission-apply-alert', 'Error submitting application: ' + err.message, 'error');
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>
